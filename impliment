@@ -1,0 +1,104 @@
+# InterviewIQ Implementation Plan
+
+This plan details the implementation of a fully functioning demo for **InterviewIQ: AI Interview Practice and Evaluation Platform**.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Database Choice:** We will use **H2 In-Memory Database** by default for the local demo so that it runs out-of-the-box without requiring a local Postgres database to be manually set up. Postgres remains configurable via properties.
+> **Gemini API:** We will integrate Google Gemini API for generating questions and evaluating answers. To ensure it runs even without a key, we will implement a **fallback mockup mode** that generates realistic AI questions and scores if `GEMINI_API_KEY` is not provided.
+> **ML Integration:** We will write a React-based MediaPipe webcam simulation directly in the browser to showcase real-time face/eye-tracking and speech indicators, backed by a Python FastAPI/Flask microservice for optional real frame analysis.
+
+---
+
+## Proposed Folder Structure
+
+We will create a multi-module workspace:
+1. `backend/`: Spring Boot Java application (existing, to be expanded).
+2. `frontend/`: React + Vite + Vanilla CSS application (to be created).
+3. `ml_service/`: Python microservice using Flask/FastAPI, OpenCV, MediaPipe, Scikit-learn (to be created).
+
+---
+
+## Proposed Changes
+
+### 1. Spring Boot Backend (`backend`)
+
+We will add authentication, user endpoints, resume uploading, Gemini-based AI question generation, answer evaluation, and history logging.
+
+#### [NEW] [SecurityConfig.java](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/backend/src/main/java/com/aiinterview/backend/config/SecurityConfig.java)
+- Configures Spring Security with JWT and CORS.
+- Allows public access to authentication, H2 console, and mock endpoints.
+
+#### [NEW] [JwtUtil.java](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/backend/src/main/java/com/aiinterview/backend/security/JwtUtil.java)
+- Handles generation and validation of JSON Web Tokens.
+
+#### [NEW] [JwtFilter.java](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/backend/src/main/java/com/aiinterview/backend/security/JwtFilter.java)
+- Intercepts requests to validate the JWT header and populate Spring Security Context.
+
+#### [NEW] [Entities and Repositories](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/backend/src/main/java/com/aiinterview/backend/repository/)
+- **`Interview.java` (Entity):** Stores metadata (type: HR/Tech/Code/Aptitude, scores, duration, date).
+- **`InterviewQuestion.java` (Entity):** Stores questions, candidate's transcript, ideal answer, scores, facial metrics, and feedback.
+- Create repositories for `User`, `Resume`, `Interview`, `InterviewQuestion`.
+
+#### [NEW] [Services](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/backend/src/main/java/com/aiinterview/backend/service/)
+- **`UserService.java`:** For signup, login, and profile fetching.
+- **`GeminiService.java`:** Calls Gemini API (or fallback template) to generate structured questions based on interview type & resume, and evaluates answers.
+- **`InterviewService.java`:** Manages starting an interview session, saving responses, and compiling final analytics.
+
+#### [NEW] [Controllers](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/backend/src/main/java/com/aiinterview/backend/controller/)
+- **`AuthController.java`:** `/api/auth/register` and `/api/auth/login`.
+- **`ResumeController.java`:** `/api/resumes/upload` and `/api/resumes/latest`.
+- **`InterviewController.java`:**
+  - `/api/interviews/start` (initiates an interview, triggers question generation)
+  - `/api/interviews/{id}/submit-answer` (submits transcribed answer + facial metrics)
+  - `/api/interviews/{id}/complete` (calculates overall scores and feedback)
+  - `/api/interviews/history` (gets user history)
+  - `/api/interviews/{id}/feedback` (gets detailed feedback for a specific interview)
+
+---
+
+### 2. React Frontend (`frontend`)
+
+We will create a Vite React app with a beautiful dashboard, custom interactive modules, charts, and a mock/real face-mesh webcam analyzer.
+
+#### [NEW] [index.css](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/frontend/src/index.css)
+- Setting up CSS variables for colors (sleek dark mode, neon accents), scrollbars, premium glassmorphism layouts, card shadows, animations.
+
+#### [NEW] [App.jsx](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/frontend/src/App.jsx)
+- Configures routes: Login, Register, Dashboard, ResumeUpload, InterviewSession, InterviewFeedback.
+
+#### [NEW] [Dashboard.jsx](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/frontend/src/components/Dashboard.jsx)
+- Visual charts (Chart.js) showing scores over time (confidence, eye contact, communication, technical).
+- Grid layout showing recent interview results and quick action buttons.
+
+#### [NEW] [InterviewSession.jsx](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/frontend/src/components/InterviewSession.jsx)
+- Displays the interviewer avatar, webcam container with overlay, question text, speech level indicator, and interactive controls.
+- Integrates Web Speech API: **Speech Synthesis** (speaks questions) and **Speech Recognition** (transcribes candidate answers).
+- Features client-side simulated face-mesh tracking inside a canvas (simulating pupil-tracking, bounding boxes, and emotion confidence gauges) to make the demo incredibly interactive.
+
+#### [NEW] [Feedback.jsx](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/frontend/src/components/Feedback.jsx)
+- Showcases detailed analytics: final score, category scores (Radar Chart), full transcript, question-by-question breakdown, and AI improvement suggestions.
+
+---
+
+### 3. Python ML Service (`ml_service`)
+
+#### [NEW] [app.py](file:///c:/Users/sai%20vishwa/Desktop/attendance_env/AI-Interview-Coach/ml_service/app.py)
+- A FastAPI/Flask app running at `http://localhost:5000`.
+- Provides an endpoint `/api/analyze-frame` that receives webcam frame blobs and returns facial coordinates, eye-gaze indicators, and emotion scores using OpenCV, MediaPipe, and Scikit-learn.
+- Provides `/api/analyze-speech` for speech delivery rate (words per minute) and emotion sentiment.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Build verification: Run `./mvnw.cmd compile` to verify the Spring Boot project compiles successfully.
+- Dependency verification: Ensure Vite is initialized and all frontend packages compile.
+
+### Manual Verification
+- Launch the Spring Boot backend (`./mvnw.cmd spring-boot:run`).
+- Launch the React frontend (`npm run dev`).
+- Run the ML service (`python app.py`).
+- Walkthrough the flow: Sign up -> Log in -> Upload Resume -> Start Technical/HR Interview -> Speak answers -> Review feedback dashboard.

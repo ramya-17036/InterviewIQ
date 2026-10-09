@@ -1,0 +1,9 @@
+flask==3.0.3
+flask-cors==4.0.1
+numpy>=1.20.0
+# The following are required for full OpenCV/MediaPipe/Sklearn features, 
+# but can be omitted or installed on-demand based on target environment constraints:
+opencv-python>=4.5.0
+mediapipe>=0.10.0
+# scikit-learn>=1.0.0
+
